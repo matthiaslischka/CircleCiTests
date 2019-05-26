@@ -1,0 +1,50 @@
+defaults: &defaults
+  docker:
+    - image: circleci/node:10-browsers
+
+version: 2
+jobs:
+  restore_api:
+    docker:
+      - image: mcr.microsoft.com/dotnet/core/sdk:2.2
+    steps:
+      - checkout
+      # - run: 
+      #     command: find .
+      #     working_directory: api
+      - run:
+          command: dotnet restore
+          working_directory: api
+      - run:
+          command: dotnet build
+          working_directory: api
+      - run:
+          command: dotnet test
+          working_directory: api
+      - save_cache:
+          key: dotnet-packages-{{ .Revision }}
+          paths:
+            - ~/.nuget/packages
+            - api
+
+  test_api:
+    docker:
+      - image: mcr.microsoft.com/dotnet/core/sdk:2.2
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - dotnet-packages-{{ .Revision }}
+      - run:
+          command: dotnet test
+          working_directory: api
+
+
+workflows:
+  version: 2
+  CircleCiTests_api:
+    jobs:
+      - restore_api
+      - test_api:
+          requires:
+            - restore_api
